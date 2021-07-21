@@ -21,16 +21,29 @@ int	ft_atoi(char *str)
 struct s_vars 
 {
     pthread_mutex_t **mutexes;
-	die				int;
-	eat				int;
-	sleep			int;
-	meal_num		int;
+	int				die;
+	int				eat;
+	int				sleep;
+	int				meal_num;
+	int				num;
 };
+
+int print_status(char *status);
+{
+	struct timeval current_time;
+
+	gettimeofday(&current_time, NULL);
+	printf("%ld %d %s\n", current_time.tv_usec / 10000, n, status);
+}
+
+
+
 
 /* i: philo number */
 void *worker_thread(void *v_data)
 {
-	while ()
+
+	while (1)
 	{
         pthread_mutex_lock(mutexes);
         pthread_mutex_unlock(mutexes);
@@ -38,14 +51,21 @@ void *worker_thread(void *v_data)
     return NULL;  /* never reached */
 }
 
-
-int lunch(struct s_vars *var, int n)
+int lunch(struct s_vars *data, int n)
 {
+	int i;
+    pthread_t	thr;
+
+	i=-1;
 	var->mutexes = malloc(sizeof(pthread_mutex_t) * (n + 1));
 	memset(var->mutexes, 0, sizeof(pthread_mutex_t) * (n + 1));
-	while (n--)	
-	{
+	while (++i < n)	
 		var->mutexes[n] = PTHREAD_MUTEX_INITIALIZER;
+	i=-1;
+	while (++i < n)	
+	{
+		data->num = i;
+		pthread_create(&thr, NULL, worker_thread, data);
 	}
 }
 

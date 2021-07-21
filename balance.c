@@ -43,8 +43,9 @@ static void *worker_thread(void *v_data)
 int _main()
 {
     int 			i;
-    int				the_array[ARRAY_SIZE];
     struct vars tsdata;
+
+    int				the_array[ARRAY_SIZE];
     pthread_t		thr;
     pthread_mutex_t mutex = PTHREAD_MUTEX_INITIALIZER;
     sem_t			tsd_sem;    
