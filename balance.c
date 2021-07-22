@@ -9,7 +9,7 @@
 #define WORKERS_COUNT 10
 #define PAUSE_LENGTH 1
 
-
+///////
 static void *worker_thread(void *v_data)
 {
     struct vars *data = v_data;
