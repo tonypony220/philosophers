@@ -3,7 +3,17 @@
 #include <string.h>
 #include <sys/time.h>
 #include <stdlib.h>
-#define PROTECT_PRINT 0
+#include <unistd.h>
+# define PROTECT_PRINT 0
+# define RED 	 "\033[1;31m"
+# define GREEN   "\033[0;32m"
+# define YELLOW	 "\033[1;33m"
+# define BLUE	 "\033[1;34m"
+# define PURPLE  "\033[1;35m"
+# define CYAN    "\033[1;36m"
+# define RESET   "\033[0;0m"
+# define BOLD    "\033[;1m"
+# define REVERSE "\033[;7m"
 
 int	ft_atoi(char *str)
 {
@@ -26,7 +36,7 @@ int	ft_atoi(char *str)
 
 struct s_vars 
 {
-    pthread_mutex_t **mutexes;
+    pthread_mutex_t *mutexes;
     pthread_mutex_t *mtx;
 	int				die;
 	int				eat;
@@ -88,35 +98,35 @@ void *worker_thread(void *v_data)
 	// 2  2  3
 	// 3  3  4
 	// 4  4  0
-	fst = (data.num + (data.num % 2)) % data.philos; // && usleep(200);
+	fst = (data.num + (data.num % 2))  % data.philos; // && usleep(200);
 	sec = (data.num + !(data.num % 2)) % data.philos; // && usleep(200);
 	
 	///sec = !(fst) && 1;
 	//data.num == 1 && (sec = 1) && (fst = 0);
 	//fst = 0;
 	//sec = 1;
-	printf("phil %d first %d, second %d\n", data.num, fst, sec);
+//	printf("phil %d first %d, second %d\n", data.num, fst, sec);
 	
 	////////print_status(&data, "started\n");
 	/////pthread_mutex_unlock(((struct s_vars *)v_data)->mtx);
 	while (1)
 	{
         pthread_mutex_lock(&data.mutexes[fst]);
-		printf("taken #%d fork=%d  ", data.num , fst);
+	//	printf("taken #%d fork=%d  ", data.num , fst);
 		print_status(&data, "has taken a fork");
         pthread_mutex_lock(&data.mutexes[sec]);
-		printf("taken #%d fork=%d  ", data.num , sec);
+	//	printf("taken #%d fork=%d  ", data.num , sec);
 		print_status(&data, "has taken a fork");
-		print_status(&data, "eating");
+		print_status(&data, RED"eating"RESET);
 		usleep(data.eat * 1000);
     	pthread_mutex_unlock(&data.mutexes[sec]);
-		printf("released #%d fork=%d \n", data.num,  sec);
+	//	printf("released #%d fork=%d \n", data.num,  sec);
       	pthread_mutex_unlock(&data.mutexes[fst]);
-		printf("released #%d fork=%d \n", data.num,  fst);
+	//	printf("released #%d fork=%d \n", data.num,  fst);
 	//	gettimeofday(&end, NULL);
-	//	pthread_mutex_lock(data.mtx);
-		gettimeofday(&data.start[data.num], NULL);
-	//	pthread_mutex_unlock(data.mtx);
+//		pthread_mutex_lock(data.mtx);
+	  	gettimeofday(&data.start[data.num], NULL);
+//		pthread_mutex_unlock(data.mtx);
 		print_status(&data, "is sleeping");
 		usleep(data.sleep * 1000);
 		print_status(&data, "is thinking");
@@ -124,11 +134,11 @@ void *worker_thread(void *v_data)
 	//	{
 	//		gettimeofday(&end, NULL);
 	//		printf("%d %ld << \n", data.num + 1, (get_time(&end) - get_time(&data.start[data.num])) / 1000);
-	//		if ((get_time(&end) - get_time(&data.start[data.num])) > data.die * 400)
+	//		if ((get_time(&end) - get_time(&data.start[data.num])) > data.die * (1000 >> 3))
 	//		{
 	//			break ;
 	//		}
-	//		usleep(data.die / 8 * 1000);
+	//		//usleep(data.die / 8 * 1000);
 	//	}
 		//start = var->start[i];
 			
@@ -147,7 +157,8 @@ void *worker_thread(void *v_data)
 	//		break;
 		//usleep(data. * 1000);
     }
-	print_status(&data, "died");
+//:w
+//print_status(&data, "died");
     return (0);  /* never reached */
 }
 
@@ -199,15 +210,15 @@ int lunch(struct s_vars *var, int n)
 	while (1)
 	{
 		i = -1;
+		usleep(9000);
 		gettimeofday(&end, NULL);
-		usleep(5000);
-		pthread_mutex_lock(var->mtx);
+		//pthread_mutex_lock(var->mtx);
 		while (++i < n)	
 		{
 			start = var->start[i];
 		//	printf("%ld start\n", start.tv_sec * 1000000 + start.tv_usec);
 		//	printf("%ld end\n", (end.tv_sec * 1000000 + end.tv_usec));
-	//		printf("#%d diff=%ld die=%d\n", i + 1, ((get_time(&end) - get_time(&start)) / 1000), var->die);
+//			printf("#%d diff=%ld die=%d\n", i + 1, ((get_time(&end) - get_time(&start)) / 1000), var->die);
 			if (start.tv_sec && start.tv_usec && ((get_time(&end) - get_time(&start)) / 1000 >= var->die))
 			{
 				printf("%ldms #%d %s\n", (get_time(&end) - get_time(&var->global_start)) / 1000, i + 1, "died");
@@ -215,8 +226,9 @@ int lunch(struct s_vars *var, int n)
 				return (0);
 			}
 		}
-		pthread_mutex_unlock(var->mtx);
+		//pthread_mutex_unlock(var->mtx);
 	}
+	sleep(10);
 }
 
 /* args:
