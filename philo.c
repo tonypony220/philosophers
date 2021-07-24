@@ -4,16 +4,20 @@
 #include <sys/time.h>
 #include <stdlib.h>
 #include <unistd.h>
-# define PROTECT_PRINT 0
-# define RED 	 "\033[1;31m"
-# define GREEN   "\033[0;32m"
-# define YELLOW	 "\033[1;33m"
-# define BLUE	 "\033[1;34m"
-# define PURPLE  "\033[1;35m"
-# define CYAN    "\033[1;36m"
-# define RESET   "\033[0;0m"
-# define BOLD    "\033[;1m"
-# define REVERSE "\033[;7m"
+#define PROTECT_PRINT 1
+#define COLOR 1
+#define DONE 1
+#define JOINED 2
+#define QUIT -1
+#define RED 	"\033[1;31m"
+#define GREEN   "\033[0;32m"
+#define YELLOW	"\033[1;33m"
+#define BLUE	"\033[1;34m"
+#define PURPLE  "\033[1;35m"
+#define CYAN    "\033[1;36m"
+#define RESET   "\033[0;0m"
+#define BOLD    "\033[;1m"
+#define REVERSE "\033[;7m"
 
 int	ft_atoi(char *str)
 {
@@ -43,17 +47,23 @@ struct s_vars
 	int				sleep;
 	int				meal_num;
 	int				num;
-	struct timeval	*start;
-    pthread_t		*ids; // not needed
+    pthread_t		*ids;
 	struct timeval	global_start;
+	struct timeval	*start;
 	int				philos;
+	char			*status;
 };
-
 
 long	get_time(struct timeval *time)
 {
 	return (time->tv_sec * 1000000 + time->tv_usec);
 }
+
+long	diff(struct timeval *end, struct timeval *start)
+{
+	return ((get_time(end) - get_time(start)) / 1000);
+}
+// (get_time(&current_time) - get_time(&data->global_start)) / 1000
 
 int print_status(struct s_vars *data, char *status)
 {
@@ -62,24 +72,30 @@ int print_status(struct s_vars *data, char *status)
 	gettimeofday(&current_time, NULL);
 
 	PROTECT_PRINT && pthread_mutex_lock(data->mtx);
-	printf("%ldms #%d %s\n", (get_time(&current_time) - get_time(&data->global_start)) / 1000, data->num , status);
+	!COLOR && printf("%ldms %d %s\n", 
+			diff(&current_time, &data->global_start),
+			data->num, status);
+	COLOR && printf("%ldms \033[1;3%dm %d %s"RESET"\n",
+			diff(&current_time, &data->global_start),
+			data->num + 1,  data->num , status);
     PROTECT_PRINT && pthread_mutex_unlock(data->mtx);
+	return (1);
 }
 
 void save_data_to_thread(struct s_vars *data, struct s_vars *data_2)
 {
-    data->mutexes	= data_2->mutexes;
-	data->die		= data_2->die;
-	data->eat		= data_2->eat;
-	data->sleep		= data_2->sleep;
-	data->meal_num	= data_2->meal_num;
-	data->num		= data_2->num;
-	data->mtx		= data_2->mtx;
-	data->start		= data_2->start;
+    data->mutexes		= data_2->mutexes;
+	data->die			= data_2->die;
+	data->eat			= data_2->eat;
+	data->sleep			= data_2->sleep;
+	data->meal_num		= data_2->meal_num;
+	data->num			= data_2->num;
+	data->mtx			= data_2->mtx;
+	data->start			= data_2->start;
 	data->global_start	= data_2->global_start;
-	data->philos	= data_2->philos;
+	data->philos		= data_2->philos;
+	data->status		= data_2->status;
 }
-
 
 /* i: philo number */
 void *worker_thread(void *v_data)
@@ -88,6 +104,7 @@ void *worker_thread(void *v_data)
 	int				fork;
 	int				fst;
 	int 			sec;
+	int				meals;
 	struct timeval	end;
 
 	save_data_to_thread(&data, v_data);
@@ -98,7 +115,7 @@ void *worker_thread(void *v_data)
 	// 2  2  3
 	// 3  3  4
 	// 4  4  0
-	fst = (data.num + (data.num % 2))  % data.philos; // && usleep(200);
+	fst = (data.num +  (data.num % 2)) % data.philos; // && usleep(200);
 	sec = (data.num + !(data.num % 2)) % data.philos; // && usleep(200);
 	
 	///sec = !(fst) && 1;
@@ -109,27 +126,51 @@ void *worker_thread(void *v_data)
 	
 	////////print_status(&data, "started\n");
 	/////pthread_mutex_unlock(((struct s_vars *)v_data)->mtx);
+	meals = 0;
+	char *str = malloc(300);
 	while (1)
 	{
         pthread_mutex_lock(&data.mutexes[fst]);
-	//	printf("taken #%d fork=%d  ", data.num , fst);
-		print_status(&data, "has taken a fork");
+		sprintf(str, "taken fork=%d  ", fst);
+		print_status(&data, str);
+		////print_status(&data, "has taken a fork");
         pthread_mutex_lock(&data.mutexes[sec]);
-	//	printf("taken #%d fork=%d  ", data.num , sec);
-		print_status(&data, "has taken a fork");
-		print_status(&data, RED"eating"RESET);
+		sprintf(str, "taken fork=%d ", sec);
+		////print_status(&data, "has taken a fork");
+		print_status(&data, str);
+		pthread_mutex_lock(data.mtx);
+    	gettimeofday(&data.start[data.num], NULL);
+		pthread_mutex_unlock(data.mtx);
+		print_status(&data, "eating");
+	 // 	gettimeofday(&data.start[data.num], NULL);
 		usleep(data.eat * 1000);
     	pthread_mutex_unlock(&data.mutexes[sec]);
-	//	printf("released #%d fork=%d \n", data.num,  sec);
       	pthread_mutex_unlock(&data.mutexes[fst]);
+	//	printf("released #%d fork=%d \n", data.num,  sec);
+///		pthread_mutex_lock(data.mtx);
+///    	gettimeofday(&data.start[data.num], NULL);
+///		pthread_mutex_unlock(data.mtx);
+		meals++;
+
+		pthread_mutex_lock(data.mtx);
+		(data.status[data.num] == QUIT) && (data.meal_num = QUIT);
+		pthread_mutex_unlock(data.mtx);
+
+		if ((data.meal_num && meals == data.meal_num) || data.meal_num == QUIT)
+		{
+			pthread_mutex_lock(data.mtx);
+			data.status[data.num] = DONE;
+			pthread_mutex_unlock(data.mtx);
+			break ;
+		}
 	//	printf("released #%d fork=%d \n", data.num,  fst);
 	//	gettimeofday(&end, NULL);
-//		pthread_mutex_lock(data.mtx);
-	  	gettimeofday(&data.start[data.num], NULL);
-//		pthread_mutex_unlock(data.mtx);
 		print_status(&data, "is sleeping");
 		usleep(data.sleep * 1000);
 		print_status(&data, "is thinking");
+		usleep(1000);
+
+
 	//	while (1)
 	//	{
 	//		gettimeofday(&end, NULL);
@@ -162,72 +203,129 @@ void *worker_thread(void *v_data)
     return (0);  /* never reached */
 }
 
+int exiting(struct s_vars *var, int n, int code)
+{
+	int i;
 
+	i = -1;
+	var->mtx && pthread_mutex_destroy(var->mtx);
+	while (var->mutexes && ++i < n)	
+		pthread_mutex_destroy(&var->mutexes[i]);
+	if (var->mutexes)
+		free(var->mutexes);
+	if (var->mtx)
+		free(var->mtx);
+	if (var->ids)
+		free(var->ids);
+	if (var->start)
+		free(var->start);
+	if (var->status)
+		free(var->status);
+	(code == 1) && printf(RED"error malloc"RESET"\n");
+	(code == 2) && printf(RED"error mutex init"RESET"\n");
+	(code == 3) && printf(YELLOW"death"RESET"\n");
+	printf("exiting\n");
+	return (code);
+}
+
+int terminate_thread_signal(struct s_vars *var, int num)
+{
+	pthread_mutex_lock(var->mtx);
+	var->status[num] = QUIT;
+	pthread_mutex_unlock(var->mtx);
+	return (1);
+}
+
+int tracking(struct s_vars *var, int n)
+{
+    pthread_t		thr;
+	struct timeval	end;
+	struct timeval	start;
+	int				i;
+	char			status;
+	int				joined;
+	char			exiting;
+
+	exiting = 0;
+	joined = 0;
+	while (joined != n)
+	{
+		i = -1;
+		usleep(9500);
+		while (++i < n)	
+		{
+			gettimeofday(&end, NULL);
+			pthread_mutex_lock(var->mtx);
+			start = var->start[i];
+			status = var->status[i];
+			thr = var->ids[i];
+			pthread_mutex_unlock(var->mtx);
+		//	printf("%ld start\n", start.tv_sec * 1000000 + start.tv_usec);
+		//	printf("%ld end\n", (end.tv_sec * 1000000 + end.tv_usec));
+//			printf("#%d diff=%ld die=%d\n", i + 1, ((get_time(&end) - get_time(&start)) / 1000), var->die);
+			exiting && terminate_thread_signal(var, i);
+			if (!exiting && start.tv_sec && start.tv_usec && (diff(&end, &start) >= var->die))
+			{
+				printf("%ldms #%d %s\n", diff(&end, &var->global_start), i, "died");
+				terminate_thread_signal(var, i);
+				exiting = 1;
+			}
+			if (status == DONE)
+			{
+				pthread_join(thr, NULL);
+				printf("%ldms #%d %s\n", diff(&end, &var->global_start), i, "JOINED");
+				pthread_mutex_lock(var->mtx);
+				var->status[i] = JOINED;
+				pthread_mutex_unlock(var->mtx);
+				joined++;
+			}
+		}
+	}
+	return (0);
+}
 
 int lunch(struct s_vars *var, int n)
 {
     pthread_t	thr;
 	int			i;
 
-	i = -1;
 	//printf("size of pthread%ld %ld<<<<<:\n", sizeof(a), sizeof(pthread_mutex_t));
 
 	var->mutexes = malloc(sizeof(pthread_mutex_t) * (n + 0));
-	memset(var->mutexes, 0, sizeof(pthread_mutex_t) * (n + 0));
-
 	var->mtx = malloc(sizeof(pthread_mutex_t));
-	memset(var->mtx, 0, sizeof(pthread_mutex_t));
-
 	var->ids = malloc(sizeof(pthread_t) * n);
-	memset(var->ids, 0, sizeof(pthread_t));
+	var->start = malloc(sizeof(struct timeval) * n);
+	var->status = malloc(sizeof(char) * n);
+	if (!var->mutexes || !var->mtx || !var->ids || !var->start || !var->status)
+		return (exiting(var, n, 1));
+	memset(var->mutexes, 0, sizeof(pthread_mutex_t) * (n + 0));
+	memset(var->mtx, 0, sizeof(pthread_mutex_t));
+	memset(var->ids, 0, sizeof(pthread_t) * n);
+	memset(var->start, 0, sizeof(struct timeval) * n);
+	memset(var->status, 0, sizeof(char) * n);
+	if (pthread_mutex_init(var->mtx, NULL))
+		return (exiting(var, n, 2));
 
-	var->start = malloc(sizeof(struct timval*) * n);
-	memset(var->ids, 0, sizeof(struct timval*) * n);
-
-	pthread_mutex_init(var->mtx, NULL);
-
-//	while (++i < n)	
-//	i = -1;
+	i = -1;
+//	while (++i < n)
+//		printf("%d thr", var->ids[i]);
+	i = -1;
 	gettimeofday(&var->global_start, NULL);
 	while (++i < n)	
 	{
-		pthread_mutex_init(&var->mutexes[i], NULL);
+		if (pthread_mutex_init(&var->mutexes[i], NULL))
+			return (exiting(var, n, 2));
 		pthread_mutex_lock(var->mtx);
 		var->num = i;
-	//	gettimeofday(&var->start[i], NULL);
 		pthread_create(&thr, NULL, worker_thread, var);
 		var->ids[i] = thr;
 		pthread_detach(thr);
-//		usleep(200);
+		//usleep(200);
 		//printf("thr=%d\n", thr);
 	}
-	
+	return (exiting(var, n, tracking(var, n)));	
 //	sleep(10000);
 //	pthread_join(thr, NULL);
-	struct timeval end;
-	struct timeval start;
-
-	while (1)
-	{
-		i = -1;
-		usleep(9000);
-		gettimeofday(&end, NULL);
-		//pthread_mutex_lock(var->mtx);
-		while (++i < n)	
-		{
-			start = var->start[i];
-		//	printf("%ld start\n", start.tv_sec * 1000000 + start.tv_usec);
-		//	printf("%ld end\n", (end.tv_sec * 1000000 + end.tv_usec));
-//			printf("#%d diff=%ld die=%d\n", i + 1, ((get_time(&end) - get_time(&start)) / 1000), var->die);
-			if (start.tv_sec && start.tv_usec && ((get_time(&end) - get_time(&start)) / 1000 >= var->die))
-			{
-				printf("%ldms #%d %s\n", (get_time(&end) - get_time(&var->global_start)) / 1000, i + 1, "died");
-				pthread_mutex_unlock(var->mtx);
-				return (0);
-			}
-		}
-		//pthread_mutex_unlock(var->mtx);
-	}
 	sleep(10);
 }
 
@@ -247,15 +345,14 @@ int _main(int ac, char **av)
 		printf("error arg num\n");
 		return (1);
 	}
+	memset(&var, 0, sizeof(struct s_vars));
 	var.die = ft_atoi(av[2]);
 	var.eat = ft_atoi(av[3]);
 	var.sleep = ft_atoi(av[4]);
 	var.philos = ft_atoi(av[1]);
-	var.meal_num = 0;
+	var.meal_num = 0x0;
 	ac == 6 && (var.meal_num = ft_atoi(av[5]));
-	lunch(&var, ft_atoi(av[1]));	
-	printf("end\n");
-	return (1);
+	return (lunch(&var, ft_atoi(av[1])));
 }
 
 int main(int ac, char **av)
