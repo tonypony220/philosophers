@@ -25,10 +25,10 @@
 # define REVERSE "\033[;7m"
 # define MISALIGNMENT 0.992
 
-struct s_vars 
+struct s_vars
 {
-	pthread_mutex_t *mutexes;
-	pthread_mutex_t *mtx;
+	pthread_mutex_t	*mutexes;
+	pthread_mutex_t	*mtx;
 	int				die;
 	int				eat;
 	int				sleep;
@@ -40,7 +40,7 @@ struct s_vars
 	int				philos;
 	char			*status;
 	int				fst;
-	int 			sec;
+	int				sec;
 };
 
 struct s_track
@@ -53,9 +53,9 @@ struct s_track
 	struct timeval	start;
 };
 
-void 				*worker_thread(void *v_data);
+void				*worker_thread(void *v_data);
 int					ft_atoi(char *str);
-int 				sleeping(long amount);
+int					sleeping(long amount);
 long				get_time(struct timeval *time);
 long				diff(struct timeval *end, struct timeval *start);
 int					print_status(struct s_vars *data, char *status, int i);

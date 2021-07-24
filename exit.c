@@ -1,12 +1,12 @@
 #include "philo.h"
 
-int exiting(struct s_vars *var, int n, int code)
+int	exiting(struct s_vars *var, int n, int code)
 {
-	int i;
+	int	i;
 
 	i = -1;
 	var->mtx && pthread_mutex_destroy(var->mtx);
-	while (var->mutexes && ++i < n)	
+	while (var->mutexes && ++i < n)
 		pthread_mutex_destroy(&var->mutexes[i]);
 	if (var->mutexes)
 		free(var->mutexes);
@@ -25,4 +25,3 @@ int exiting(struct s_vars *var, int n, int code)
 	printf("exiting\n");
 	return (code && 1);
 }
-
