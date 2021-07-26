@@ -7,6 +7,8 @@
 # include <stdlib.h>
 # include <unistd.h>
 # define HUMAN_NUM 1
+# define DEBUG 0
+# define SHOW_STARVING 0
 # define PROTECT_PRINT 1
 # define HARD_EXIT 0
 # define COLOR 1
@@ -48,9 +50,7 @@ struct s_track
 	pthread_t		thr;
 	char			status;
 	int				joined;
-	char			exiting;
-	struct timeval	end;
-	struct timeval	start;
+	int			exiting;
 };
 
 void				*worker_thread(void *v_data);

@@ -1,14 +1,13 @@
 #include "philo.h"
 
+/* as far as errno not available to use i assume
+ * only reason for error is errno == EEXIST */
 int create_semaphore(sem_t **sem, int val, char *name)
 {
     *sem = sem_open(name, O_CREAT | O_EXCL, 0644, val); 
 	if (*sem == SEM_FAILED)
 	{
- 		if (errno != EEXIST)
-			return (0);
-		sem_unlink(name);   
-		sem_close(*sem);  
+		sem_unlink(name) && printf("failed initial unlinking\n");   
 		*sem = sem_open(name, O_CREAT | O_EXCL, 0644, val); 
 	}
 	return (1);
@@ -19,20 +18,21 @@ int	waiting(struct s_vars *var)
 	/* wait for all children to exit */
 	int status;
 	pid_t pid;
+	int i;
 
+	status = 0;
 	while (1)
 	{
 		pid = waitpid(-1, &status, 0);
-		if (status)
+		DEBUG && printf("%d process exit status = %d\n", pid, status);
+		pid == -1 && exiting(var, 0);
+		i = -1;
+		while (++i < var->philos)
 		{
-			kill_all(var->pids);		
-			break;
+			if (var->pids[i] == pid)
+				var->pids[i] = 0;
 		}
-		if (errno == ECHILD)
-		{
-			printf("exited");
-			break;
-		}
+		status && exiting(var, 0);
 	}
 	return (exiting(var, 0));
 }
@@ -50,35 +50,31 @@ int initialize(struct s_vars *var, int n)
 	return (1);
 }
 
+/* to match norminette i had to make it that unclear way 
+ * but this main function which creates new processes 
+ * remeber and starts waiting them */
 int	lunch(struct s_vars *var, int n)
 {
     int i;
 	pid_t pid;
 	
-	initialize(var, n);
-	i = -1;
+	(i = -1) && initialize(var, n);
     while (++i < n)
 	{
         pid = fork();
-        if (pid < 0) 
-			exiting(var, ERR_FORK);
-        else if (pid == 0)
+        pid < 0 && exiting(var, ERR_FORK);
+        if (pid == 0)
             break;
-		else
-			var->pids[i] = pid;	
+		var->pids[i] = pid;	
     }
-    if (pid != 0)
-		waiting(var);
-    else
-	{
-		free(var->pids);
-		var->num = i;
-		run_loop(var);
-    }
+    pid && waiting(var);
+	free(var->pids);
+	var->num = i;
+	run_loop(var);
 	return (1);
 }
 
-/* args:
+/* expecting args:
  * 		1 number_of_philosophers
  * 		2 time_to_die 
  * 		3 time_to_eat

@@ -36,6 +36,7 @@ int	eating_loop_part(struct s_vars *vars)
 	pthread_mutex_lock(&data.mutexes[data.fst]);
 	print_status(&data, "has taken a fork", data.num);
 	pthread_mutex_lock(&data.mutexes[data.sec]);
+	print_status(&data, "has taken a fork", data.num);
 	pthread_mutex_lock(data.mtx);
 	gettimeofday(&data.start[data.num], NULL);
 	status = data.status[data.num];

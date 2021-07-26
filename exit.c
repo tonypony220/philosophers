@@ -22,6 +22,6 @@ int	exiting(struct s_vars *var, int n, int code)
 	(code == 2) && printf(RED"error: mutex init"RESET"\n");
 	(code == 3) && printf(YELLOW"death"RESET"\n");
 	(code == 4) && printf(RED"error: argument"RESET"\n");
-	printf("exiting\n");
+	DEBUG && printf("exiting\n");
 	return (code && 1);
 }

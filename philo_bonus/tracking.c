@@ -36,8 +36,9 @@ void	*tracking(void *v_data)
 		{
 			var->status = DEAD;
 			sem_post(var->sem_disp);
-			//terminate_thread_signal(var, DEAD);
 			print_status(var, RED"died"RESET, var->num);
+			sem_wait(var->sem_disp);
+			exit(1);
 			scope.exiting = 1;
 			break ;
 		}

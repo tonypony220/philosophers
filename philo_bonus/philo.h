@@ -9,9 +9,11 @@
 # include <signal.h>
 /* O_CREAT, O_EXEC */
 # include <fcntl.h>
-#include <sys/types.h>      /* key_t, sem_t, pid_t      */
-#include <semaphore.h>      /* sem_open(), sem_destroy(), sem_wait().. */
-#include <errno.h>          /* errno, ECHILD            */
+/* key_t, sem_t, pid_t      */
+#include <sys/types.h>
+/* sem_open(), sem_destroy(), sem_wait().. */
+#include <semaphore.h>
+# define DEBUG 0
 # define HUMAN_NUM 1
 # define PROTECT_PRINT 1
 # define SHOW_STARVING 0
@@ -76,6 +78,7 @@ int					print_status(struct s_vars *data, char *status, int i);
 void				*worker_thread(void *v_data);
 void				*tracking(void *v_data);
 int					exiting(struct s_vars *var, int code);
-int kill_all(pid_t *pids);
+int close_semaphore(sem_t *sem, char *name);
+int kill_all(pid_t *pids, int n);
 
 #endif

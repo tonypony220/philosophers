@@ -3,7 +3,6 @@
 int	getting_thread_info(struct s_vars *var, struct s_track *scope, int i)
 {
 	pthread_mutex_lock(var->mtx);
-	scope->start = var->start[i];
 	scope->status = var->status[i];
 	scope->thr = var->ids[i];
 	pthread_mutex_unlock(var->mtx);
@@ -28,25 +27,37 @@ int	waiting_thread(struct s_vars *var, struct s_track *scope, int i)
 	return (1);
 }
 
+int is_dead(struct s_vars *var, int i)
+{
+	struct timeval	current_time;
+	int				res;
+
+	gettimeofday(&current_time, NULL);
+	pthread_mutex_lock(var->mtx);
+	res = var->start[i].tv_sec && var->start[i].tv_usec 
+		&& diff(&current_time, &var->start[i]) >= var->die;
+	pthread_mutex_unlock(var->mtx);
+	return (res);
+}
+
 int	tracking(struct s_vars *var, int n)
 {
 	struct s_track			scope;
 	int						i;
 
 	memset(&scope, 0, sizeof(struct s_track));
-	while (scope.joined != n)
+	while (scope.joined != n && scope.exiting < 400)
 	{
 		(i = -1) && usleep(4000);
 		while (++i < n)
 		{
-			gettimeofday(&scope.end, NULL);
 			getting_thread_info(var, &scope, i);
 			scope.exiting && terminate_thread_signal(var, i, QUIT);
-			if (!scope.exiting && scope.start.tv_sec && scope.start.tv_usec
-				&& (diff(&scope.end, &scope.start) >= var->die))
+			scope.exiting && ++scope.exiting;
+			if (!scope.exiting && is_dead(var, i))
 			{
-				terminate_thread_signal(var, i, DEAD);
 				print_status(var, "died", i);
+				terminate_thread_signal(var, i, DEAD);
 				scope.exiting = 1;
 			}
 			if (scope.status == DONE)

@@ -2,7 +2,8 @@ SRCS	=	exit.c  loop_thread.c  utils.c sem_philo.c tracking.c
 
 OBJS	=	${SRCS:.c=.o}
 
-CFLAGS	=   -O0 -Wall -Wextra -Werror
+CFLAGS	=   -O0 -Wall -Wextra -Werror #-g -fsanitize=address
+
 
 HEAD	=	philo.h
 
